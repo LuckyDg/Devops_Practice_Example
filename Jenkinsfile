@@ -30,9 +30,6 @@ pipeline {
 
                     # Asegurarnos de que el docker-compose.yml está en la raíz de la estructura
                     cp docker-compose.yml fleet-management/
-
-                    # Crear un README.md con las instrucciones
-                    echo "# Proyecto Flota Marítima\nEste proyecto contiene la estructura básica para los microservicios de una flota marítima. Para levantar todos los servicios, ejecuta el siguiente comando en la raíz del proyecto:\n\n\`\`\ndocker-compose up -d\n\`\`\n" > fleet-management/README.md
                     '''
                 }
             }
