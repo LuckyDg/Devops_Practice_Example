@@ -31,13 +31,10 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    // Construir imágenes para cada servicio
                     def services = ['api-gateway', 'ms-auth', 'ms-ship']
                     for (service in services) {
                         echo "Construyendo la imagen Docker para ${service}"
-                        sh """
-                        docker build -t ${service}:latest ${service}/
-                        """
+                        sh "docker build -t ${service}:latest ${service}/"
                     }
                 }
             }
@@ -53,11 +50,11 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo "Ejecutando pruebas"
-                sh "docker-compose exec ms-auth npm test"
+                // Deshabilitado para evitar el error
+                sh "docker-compose exec -T ms-auth npm test"
             }
         }
 
-        // AWS o Kubernetes
         stage('Deploy to AWS (Optional)') {
             steps {
                 echo "Desplegando en AWS (Pendiente de implementar)"
