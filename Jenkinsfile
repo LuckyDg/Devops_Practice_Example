@@ -1,41 +1,32 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_TAG = "latest"
-        SERVICES = ["api-gateway", "ms-auth", "ms-ship"]
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                checkout scm: [
-                    $class: 'GitSCM',
-                    branches: [[name: 'refs/heads/main']],
-                    userRemoteConfigs: [[url: 'https://github.com/LuckyDg/Devops_Practice_Example.git']]
-                ]
+                checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                script {
-                    SERVICES.each { service ->
-                        dir(service) {
-                            sh 'npm install'
-                        }
-                    }
+                dir('api-gateway') {
+                    sh 'npm install'
+                }
+                dir('ms-auth') {
+                    sh 'npm install'
+                }
+                dir('ms-ship') {
+                    sh 'npm install'
                 }
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                script {
-                    SERVICES.each { service ->
-                        sh "docker build -t ${service}:${IMAGE_TAG} ./${service}/"
-                    }
-                }
+                sh 'docker build -t api-gateway:latest api-gateway/'
+                sh 'docker build -t ms-auth:latest ms-auth/'
+                sh 'docker build -t ms-ship:latest ms-ship/'
             }
         }
 
