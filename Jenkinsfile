@@ -9,7 +9,6 @@ pipeline {
     stages {
         stage('Clonar Repositorio') {
             steps {
-                // Clonamos el repositorio del proyecto tal como está
                 git branch: 'main', url: 'https://github.com/luckydg/Devops_Practice_Example.git'
             }
         }
@@ -23,10 +22,16 @@ pipeline {
                     mkdir -p fleet-management/ms-chips
                     mkdir -p fleet-management/ms-out
                     
-                    # Copiar los archivos del repositorio a sus respectivas carpetas
-                    cp -r api-gateway/* fleet-management/api-gateway/
-                    cp -r ms-chips/* fleet-management/ms-chips/
-                    cp -r ms-out/* fleet-management/ms-out/
+                    # Copiar los archivos del repositorio a sus respectivas carpetas solo si existen
+                    if [ -d "api-gateway" ]; then
+                        cp -r api-gateway/* fleet-management/api-gateway/
+                    fi
+                    if [ -d "ms-chips" ]; then
+                        cp -r ms-chips/* fleet-management/ms-chips/
+                    fi
+                    if [ -d "ms-out" ]; then
+                        cp -r ms-out/* fleet-management/ms-out/
+                    fi
 
                     # Asegurarnos de que el docker-compose.yml está en la raíz de la estructura
                     cp docker-compose.yml fleet-management/
@@ -38,7 +43,7 @@ pipeline {
         stage('Construir Imagen Docker') {
             steps {
                 script {
-                    // Construir la imagen Docker que contiene solo la estructura del proyecto sin dependencias
+                    // Construir la imagen Docker que contiene solo la estructura del proyecto
                     sh 'docker build -t ${DOCKER_REGISTRY}/fleet-management:${IMAGE_TAG} ./fleet-management'
                 }
             }
