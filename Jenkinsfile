@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         IMAGE_TAG = "latest"
-        DOCKER_IMAGE_NAME = "luckydg/float-maritime-container-app"
+        DOCKER_IMAGE_NAME = "lucky/float-maritime-container-app"
         DOCKER_CREDENTIALS_ID = 'docker-credentials-id'
-        SERVICES = ['api-gateway', 'ms-auth', 'ms-ship']
+        SERVICES = 'api-gateway,ms-auth,ms-ship'
     }
 
     stages {
@@ -18,7 +18,8 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    SERVICES.each { service ->
+                    def servicesList = SERVICES.split(',')
+                    servicesList.each { service ->
                         dir(service) {
                             sh 'npm install'
                         }
@@ -30,7 +31,8 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    SERVICES.each { service ->
+                    def servicesList = SERVICES.split(',')
+                    servicesList.each { service ->
                         sh "docker build -t ${DOCKER_IMAGE_NAME}-${service}:${IMAGE_TAG} ./${service}/"
                     }
                 }
@@ -40,7 +42,6 @@ pipeline {
         stage('Login to Docker Hub') {
             steps {
                 script {
-                    // Autenticarse en Docker Hub
                     docker.withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                     }
@@ -51,7 +52,8 @@ pipeline {
         stage('Push Docker Images to Docker Hub') {
             steps {
                 script {
-                    SERVICES.each { service ->
+                    def servicesList = SERVICES.split(',')
+                    servicesList.each { service ->
                         sh "docker push ${DOCKER_IMAGE_NAME}-${service}:${IMAGE_TAG}"
                     }
                 }
