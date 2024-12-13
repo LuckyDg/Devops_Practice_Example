@@ -1,32 +1,58 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_TAG = "latest"
+        DOCKER_IMAGE_NAME = "luckydg/float-maritime-container-app"
+        DOCKER_CREDENTIALS_ID = 'docker-credentials-id'  
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/LuckyDg/Devops_Practice_Example.git'
+                checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                dir('api-gateway') {
-                    sh 'npm install'
-                }
-                dir('ms-auth') {
-                    sh 'npm install'
-                }
-                dir('ms-ship') {
-                    sh 'npm install'
+                script {
+                    SERVICES.each { service ->
+                        dir(service) {
+                            sh 'npm install'
+                        }
+                    }
                 }
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                sh 'docker build -t api-gateway:latest api-gateway/'
-                sh 'docker build -t ms-auth:latest ms-auth/'
-                sh 'docker build -t ms-ship:latest ms-ship/'
+                script {
+                    SERVICES.each { service ->
+                        sh "docker build -t ${DOCKER_IMAGE_NAME}-${service}:${IMAGE_TAG} ./${service}/"
+                    }
+                }
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                script {
+                    docker.withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Images to Docker Hub') {
+            steps {
+                script {
+                    SERVICES.each { service ->
+                        sh "docker push ${DOCKER_IMAGE_NAME}-${service}:${IMAGE_TAG}"
+                    }
+                }
             }
         }
 
