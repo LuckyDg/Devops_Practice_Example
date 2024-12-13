@@ -19,6 +19,6 @@ async function bootstrap() {
   
   app.useGlobalFilters(new RcpCustomExceptionFilter())
   await app.listen(envs.port);
-  logger.log(`Api Gateway Running on port ${envs.port} 🛡️`);
+  logger.log(`Api Gateway Maritime Running on port ${envs.port} 🛡️`);
 }
 bootstrap();
