@@ -4,7 +4,8 @@ pipeline {
     environment {
         IMAGE_TAG = "latest"
         DOCKER_IMAGE_NAME = "luckydg/float-maritime-container-app"
-        DOCKER_CREDENTIALS_ID = 'docker-credentials-id'  
+        DOCKER_CREDENTIALS_ID = 'docker-credentials-id'
+        SERVICES = ['api-gateway', 'ms-auth', 'ms-ship']
     }
 
     stages {
@@ -39,6 +40,7 @@ pipeline {
         stage('Login to Docker Hub') {
             steps {
                 script {
+                    // Autenticarse en Docker Hub
                     docker.withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                     }
