@@ -2,74 +2,61 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_TAG = "latest"
-        DOCKER_IMAGE_NAME = "lucky/float-maritime-container-app"
-        DOCKER_CREDENTIALS_ID = 'docker-credentials-id'
-        SERVICES = 'api-gateway,ms-auth,ms-ship'
+        DOCKER_REGISTRY = 'docker.io/luckydg' // Cambia 'tu_usuario' por tu nombre de usuario de Docker Hub
+        IMAGE_TAG = 'latest'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clonar Repositorio') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/luckydg/Devops_Practice_Example.git'
             }
         }
-
-        stage('Install Dependencies') {
+        stage('Construir Imágenes Docker') {
             steps {
                 script {
-                    def servicesList = SERVICES.split(',')
-                    servicesList.each { service ->
-                        dir(service) {
-                            sh 'npm install'
-                        }
+                    // Construir las imágenes para cada servicio en el docker-compose.yml
+                    sh 'docker-compose -f docker-compose.yml build'
+                }
+            }
+        }
+        stage('Etiquetar y Subir Imágenes') {
+            steps {
+                script {
+                    // Autenticación con las credenciales configuradas en Jenkins
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        // Aquí usamos las credenciales directamente sin necesidad de definir las variables 'DOCKER_USER' y 'DOCKER_PASS'
+                        sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+
+                        // Etiquetar y subir las imágenes al registro
+                        sh """
+                        docker tag ms-auth:latest ${DOCKER_REGISTRY}/ms-auth:${IMAGE_TAG}
+                        docker push ${DOCKER_REGISTRY}/ms-auth:${IMAGE_TAG}
+
+                        docker tag ms-ship:latest ${DOCKER_REGISTRY}/ms-ship:${IMAGE_TAG}
+                        docker push ${DOCKER_REGISTRY}/ms-ship:${IMAGE_TAG}
+
+                        docker tag api-gateway:latest ${DOCKER_REGISTRY}/api-gateway:${IMAGE_TAG}
+                        docker push ${DOCKER_REGISTRY}/api-gateway:${IMAGE_TAG}
+                        """
                     }
                 }
             }
         }
-
-        stage('Build Docker Images') {
+        stage('Crear Artefacto del Proyecto') {
             steps {
                 script {
-                    def servicesList = SERVICES.split(',')
-                    servicesList.each { service ->
-                        sh "docker build -t ${DOCKER_IMAGE_NAME}-${service}:${IMAGE_TAG} ./${service}/"
-                    }
+                    // Empaquetar los archivos importantes del proyecto
+                    sh 'tar -czf proyecto-flotas.tar.gz docker-compose.yml README.md'
                 }
             }
         }
+    }
 
-        stage('Login to Docker Hub') {
-            steps {
-                script {
-                    docker.withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                    }
-                }
-            }
-        }
-
-        stage('Push Docker Images to Docker Hub') {
-            steps {
-                script {
-                    def servicesList = SERVICES.split(',')
-                    servicesList.each { service ->
-                        sh "docker push ${DOCKER_IMAGE_NAME}-${service}:${IMAGE_TAG}"
-                    }
-                }
-            }
-        }
-
-        stage('Start Services with Docker Compose') {
-            steps {
-                sh 'docker-compose up -d'
-            }
-        }
-
-        stage('Cleanup') {
-            steps {
-                sh 'docker-compose down'
-            }
+    post {
+        always {
+            // Guardar el artefacto comprimido para futuras descargas
+            archiveArtifacts artifacts: 'proyecto-flotas.tar.gz', fingerprint: true
         }
     }
 }
