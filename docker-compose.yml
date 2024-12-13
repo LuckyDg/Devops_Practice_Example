@@ -1,0 +1,145 @@
+services:
+  ms-auth:
+    image: ms-auth:latest
+    build:
+      context: ./ms-auth
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DB_HOST=auth-db
+      - DB_PORT=5432
+      - DB_USER=devops
+      - DB_PASS=devops
+      - DB_NAME=auth_db
+      - JWT_SECRET=3lkfjhleg!sadfslhdfjso34393
+    depends_on:
+      - auth-db
+    networks:
+      - float_maritime_container_app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://ms-auth:3001/health"]
+      interval: 30s
+      retries: 5
+      start_period: 40s
+      timeout: 20s
+
+  auth-db:
+    image: postgres:14.3-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=devops
+      - POSTGRES_PASSWORD=devops
+      - POSTGRES_DB=auth_db
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - float_maritime_container_app-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "devops", "-d", "auth_db"]
+      interval: 30s
+      retries: 5
+      start_period: 40s
+      timeout: 20s
+
+  ms-ship:
+    image: ms-ship:latest
+    build:
+      context: ./ms-ship
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - DB_HOST=ships-db
+      - DB_PORT=5432
+      - DB_USER=devops
+      - DB_PASS=devops
+      - DB_NAME=ships_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+    depends_on:
+      - ships-db
+      - rabbitmq
+    networks:
+      - float_maritime_container_app-network
+    command: ["npm", "run", "start"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://ms-ship:3003/health"]
+      interval: 30s
+      retries: 5
+      start_period: 40s
+      timeout: 20s
+
+  ships-db:
+    image: postgres:14.3-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=devops
+      - POSTGRES_PASSWORD=devops
+      - POSTGRES_DB=ships_db
+    volumes:
+      - ships-db-data:/var/lib/postgresql/data
+    networks:
+      - float_maritime_container_app-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "devops", "-d", "ships_db"]
+      interval: 30s
+      retries: 5
+      start_period: 40s
+      timeout: 20s
+
+  api-gateway:
+    image: api-gateway:latest
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://ms-auth:3001
+      - SHIP_SERVICE_URL=http://ms-ship:3003
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+    depends_on:
+      - ms-auth
+      - ms-ship
+      - rabbitmq
+    networks:
+      - float_maritime_container_app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://api-gateway:3000/health"]
+      interval: 30s
+      retries: 5
+      start_period: 40s
+      timeout: 20s
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - float_maritime_container_app-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      retries: 5
+      start_period: 40s
+      timeout: 20s
+
+networks:
+  float_maritime_container_app-network:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  ships-db-data:
