@@ -16,29 +16,23 @@ pipeline {
         stage('Crear Imagen Docker con la Estructura del Proyecto') {
             steps {
                 script {
-                    // Crear la estructura del proyecto sin ejecutar dependencias
                     sh '''
                     mkdir -p fleet-management/api-gateway
-                    mkdir -p fleet-management/ms-chips
-                    mkdir -p fleet-management/ms-out
+                    mkdir -p fleet-management/ms-ships
+                    mkdir -p fleet-management/ms-auth
                     
-                    # Copiar los archivos del repositorio a sus respectivas carpetas solo si existen
-                    if [ -d "api-gateway" ]; then
-                        cp -r api-gateway/* fleet-management/api-gateway/
-                    fi
-                    if [ -d "ms-chips" ]; then
-                        cp -r ms-chips/* fleet-management/ms-chips/
-                    fi
-                    if [ -d "ms-out" ]; then
-                        cp -r ms-out/* fleet-management/ms-out/
-                    fi
+                    # Copiar todas las carpetas y archivos del repositorio a las carpetas correspondientes
+                    cp -r api-gateway/* fleet-management/api-gateway/
+                    cp -r ms-ships/* fleet-management/ms-ships/
+                    cp -r ms-auth/* fleet-management/ms-auth/
 
-                    # Asegurarnos de que el docker-compose.yml está en la raíz de la estructura
+                    # Copiar docker-compose.yml a la raíz del proyecto
                     cp docker-compose.yml fleet-management/
                     '''
                 }
             }
         }
+
 
         stage('Construir Imagen Docker') {
             steps {
